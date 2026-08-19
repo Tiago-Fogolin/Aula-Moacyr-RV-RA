@@ -20,6 +20,39 @@
         pointer-events: none;
         text-shadow: 0 1px 3px rgba(0,0,0,0.6);
       }
+      #sonda {
+        position: fixed;
+        z-index: 2;
+        top: 12px;
+        right: 12px;
+        width: min(520px, calc(100% - 24px));
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        padding: 12px;
+        color: #111;
+        background: rgba(255, 255, 255, 0.94);
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+      }
+      #sonda button {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      #sonda h2, #sonda h3 { margin: 8px 0; }
+      #sonda p { margin: 6px 0; }
+      #sonda table {
+        width: 100%;
+        margin: 8px 0;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      #sonda th, #sonda td {
+        padding: 5px;
+        border: 1px solid #bbb;
+        text-align: left;
+        vertical-align: top;
+      }
     </style>
   </head>
   <body>

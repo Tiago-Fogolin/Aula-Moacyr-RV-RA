@@ -5,9 +5,45 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { XRScene } from './scene';
 import { setupControllers } from './controllers';
 import { setupARHitTest } from './ar';
+import { conferirComposicao, sondar } from './devices/probe';
+import { montarSonda } from './bench/reports/report';
 
 // --- Renderer ---
 const container = document.getElementById('app') as HTMLDivElement;
+
+const painelSonda: HTMLDivElement = document.createElement('div');
+painelSonda.id = 'sonda';
+document.body.appendChild(painelSonda);
+
+const saidaSonda: HTMLDivElement = document.createElement('div');
+painelSonda.appendChild(saidaSonda);
+
+const botaoSonda: HTMLButtonElement = document.createElement('button');
+botaoSonda.type = 'button';
+botaoSonda.textContent = 'Sondar aparelho';
+botaoSonda.addEventListener('click', async () => {
+  botaoSonda.disabled = true;
+  botaoSonda.textContent = 'Sondando...';
+
+  try {
+    const resultado = await sondar();
+    const confronto =
+      resultado.emSessao === undefined
+        ? undefined
+        : conferirComposicao(resultado.emSessao);
+    montarSonda(saidaSonda, resultado, confronto);
+  } catch (erro: unknown) {
+    saidaSonda.replaceChildren();
+    const mensagem: HTMLParagraphElement = document.createElement('p');
+    mensagem.textContent =
+      erro instanceof Error ? `Não foi possível sondar: ${erro.message}` : 'Não foi possível sondar o aparelho.';
+    saidaSonda.appendChild(mensagem);
+  } finally {
+    botaoSonda.disabled = false;
+    botaoSonda.textContent = 'Sondar aparelho';
+  }
+});
+painelSonda.appendChild(botaoSonda);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(window.devicePixelRatio);
