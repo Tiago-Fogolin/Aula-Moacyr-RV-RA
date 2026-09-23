@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>WebXR + Three.js + TypeScript</title>
+    <title>Ordenha — WebXR + Three.js + TypeScript</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { height: 100%; overflow: hidden; background: #101015; }
@@ -20,12 +20,11 @@
         pointer-events: none;
         text-shadow: 0 1px 3px rgba(0,0,0,0.6);
       }
-      #sonda {
+      .painel-flutuante {
         position: fixed;
         z-index: 2;
         top: 12px;
-        right: 12px;
-        width: min(520px, calc(100% - 24px));
+        width: min(420px, calc(50% - 18px));
         max-height: calc(100vh - 24px);
         overflow: auto;
         padding: 12px;
@@ -34,30 +33,58 @@
         font-family: system-ui, sans-serif;
         font-size: 13px;
       }
-      #sonda button {
+      #painel-relatorio { left: 12px; }
+      #sonda { right: 12px; }
+      .painel-flutuante button {
         margin-bottom: 10px;
         padding: 8px 12px;
         cursor: pointer;
       }
-      #sonda h2, #sonda h3 { margin: 8px 0; }
-      #sonda p { margin: 6px 0; }
-      #sonda table {
+      .painel-flutuante h1 { font-size: 16px; margin: 0 0 8px; }
+      .painel-flutuante h2, .painel-flutuante h3 { margin: 8px 0; }
+      .painel-flutuante p { margin: 6px 0; }
+      .painel-flutuante pre {
+        white-space: pre-wrap;
+        font-size: 12px;
+        background: #f2f2f2;
+        padding: 8px;
+        border-radius: 4px;
+      }
+      .painel-flutuante table {
         width: 100%;
         margin: 8px 0;
         border-collapse: collapse;
         font-size: 12px;
       }
-      #sonda th, #sonda td {
+      .painel-flutuante th, .painel-flutuante td {
         padding: 5px;
         border: 1px solid #bbb;
         text-align: left;
         vertical-align: top;
       }
+      .diario p { margin: 4px 0; padding: 4px 6px; border-radius: 3px; font-size: 12px; }
+      .diario-nota { background: #eef6ff; }
+      .diario-alerta { background: #fff4d6; }
+      .diario-falha { background: #ffe1e1; }
     </style>
   </head>
   <body>
     <div id="app"></div>
-    <div id="info">Clique em <b>ENTER VR</b> ou <b>START AR</b>. No desktop, arraste para orbitar.</div>
+    <div id="info">Clique em <b>ENTER VR</b> ou <b>START AR</b>. No desktop, clique numa teta pra ordenhar.</div>
+
+    <div id="painel-relatorio" class="painel-flutuante">
+      <h1>Cena de ordenha — grafo e laço de renderização</h1>
+      <section id="relatorio"></section>
+      <section id="estrutura"></section>
+      <button id="reparentar-painel" type="button">Mover o painel para o balde</button>
+      <div id="diario" class="diario"></div>
+    </div>
+
+    <div id="sonda" class="painel-flutuante">
+      <button id="sondar" type="button">Sondar aparelho</button>
+      <div id="sonda-saida"></div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
