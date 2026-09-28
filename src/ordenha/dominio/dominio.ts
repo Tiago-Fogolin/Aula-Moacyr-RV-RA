@@ -75,8 +75,8 @@ export const ORDENHA: Dominio = {
       id: 'balde',
       nome: 'Balde',
       justificativaDeParentesco:
-        'Filho do curral, não da vaca: nasce solto porque no Bloco 2 poderá ser ' +
-        'segurado e afastado da vaca.',
+        'Filho do curral, não da vaca: é pego e carregado pela mão (troca de pai ' +
+        'para a mão e volta), e não acompanha a vaca se ela for deslocada.',
     },
     {
       id: 'cilindro-de-leite',
@@ -86,3 +86,14 @@ export const ORDENHA: Dominio = {
     },
   ],
 };
+
+/**
+ * Peças que o domínio promete e que a cena montada não contém — o passo 7 só se
+ * confere contra o passo 2. Lista vazia quer dizer que a árvore tem tudo.
+ */
+export function pecasAusentes(
+  dominio: Dominio,
+  presentes: ReadonlyMap<PecaId, unknown>,
+): Peca[] {
+  return dominio.pecas.filter((peca) => !presentes.has(peca.id));
+}

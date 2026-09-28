@@ -28,7 +28,7 @@ export class Diario {
 
   private registrar(entrada: Entrada): void {
     this.entradas.push(entrada);
-    console.info(`[bancada:${entrada.severidade}] ${entrada.texto}`);
+    console.info(`[ordenha:${entrada.severidade}] ${entrada.texto}`);
     this.redesenhar();
   }
 

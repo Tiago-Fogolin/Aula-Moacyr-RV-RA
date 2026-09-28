@@ -1,15 +1,31 @@
 import * as THREE from 'three';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+import { reparentar, type Reparentagem } from './ordenha/core/hierarquia';
 
+export interface OpcoesDosControles {
+  /** Objetos que o gatilho prende à mão (troca de pai) enquanto está apertado. */
+  readonly pegaveis: readonly THREE.Object3D[];
+  /** Objetos que o gatilho aciona sem pegar (as tetas: ordenhar). */
+  readonly tocaveis: readonly THREE.Object3D[];
+  aoTocar(objeto: THREE.Object3D): void;
+  aoReparentar(reparentagem: Reparentagem): void;
+}
+
+interface Pegada {
+  readonly objeto: THREE.Object3D;
+  /** Quem era o pai antes de a mão pegar — é para lá que o objeto volta ao soltar. */
+  readonly paiDeOrigem: THREE.Object3D;
+}
 
 export function setupControllers(
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
-  interactive: THREE.Object3D[],
+  opcoes: OpcoesDosControles,
 ) {
   const raycaster = new THREE.Raycaster();
   const tempMatrix = new THREE.Matrix4();
   const modelFactory = new XRControllerModelFactory();
+  const alvos: THREE.Object3D[] = [...opcoes.pegaveis, ...opcoes.tocaveis];
 
   const rayGeometry = new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(0, 0, 0),
@@ -22,10 +38,12 @@ export function setupControllers(
   rayLine.scale.z = 5;
 
   const controllers: THREE.XRTargetRaySpace[] = [];
-  const selected = new Map<THREE.XRTargetRaySpace, THREE.Object3D>();
+  const pegadas = new Map<THREE.XRTargetRaySpace, Pegada>();
+  const realcados: THREE.MeshStandardMaterial[] = [];
 
   for (let i = 0; i < 2; i++) {
     const controller = renderer.xr.getController(i);
+    controller.name = `mao-${i}`;
     controller.add(rayLine.clone());
     scene.add(controller);
 
@@ -42,45 +60,50 @@ export function setupControllers(
     tempMatrix.identity().extractRotation(controller.matrixWorld);
     raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
     raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-    const hits = raycaster.intersectObjects(interactive, false);
+    const hits = raycaster.intersectObjects(alvos, false);
     return hits.length > 0 ? hits[0] : null;
   }
 
   function onSelectStart(controller: THREE.XRTargetRaySpace): void {
     const hit = intersect(controller);
-    if (hit) {
-      const obj = hit.object;
-      controller.attach(obj); // "gruda" o objeto na mão
-      selected.set(controller, obj);
+    if (hit === null) return;
+    const objeto = hit.object;
+
+    if (opcoes.tocaveis.includes(objeto)) {
+      opcoes.aoTocar(objeto);
+      return;
     }
+    if (objeto.parent === null) return;
+    // Prende o objeto à mão: troca de pai, e não cópia de posição a cada quadro.
+    const paiDeOrigem = objeto.parent;
+    opcoes.aoReparentar(reparentar(objeto, controller));
+    pegadas.set(controller, { objeto, paiDeOrigem });
   }
 
   function onSelectEnd(controller: THREE.XRTargetRaySpace): void {
-    const obj = selected.get(controller);
-    if (obj) {
-      scene.attach(obj); // solta de volta na cena
-      selected.delete(controller);
-    }
+    const pegada = pegadas.get(controller);
+    if (pegada === undefined) return;
+    // Devolve ao pai de origem (o curral), e não à raiz: a árvore não perde o galho.
+    opcoes.aoReparentar(reparentar(pegada.objeto, pegada.paiDeOrigem));
+    pegadas.delete(controller);
   }
 
   return {
     /** Realça o objeto sob a mira de cada controller. */
     update(): void {
-      for (const material of highlightReset) material.emissive.setHex(0x000000);
-      highlightReset.length = 0;
+      for (const material of realcados) material.emissive.setHex(0x000000);
+      realcados.length = 0;
 
       for (const controller of controllers) {
-        if (selected.has(controller)) continue;
+        if (pegadas.has(controller)) continue;
         const hit = intersect(controller);
         const mesh = hit?.object as THREE.Mesh | undefined;
         const mat = mesh?.material as THREE.MeshStandardMaterial | undefined;
         if (mat && 'emissive' in mat) {
           mat.emissive.setHex(0x333333);
-          highlightReset.push(mat);
+          realcados.push(mat);
         }
       }
     },
   };
 }
-
-const highlightReset: THREE.MeshStandardMaterial[] = [];

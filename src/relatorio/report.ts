@@ -1,8 +1,8 @@
-import type { Dominio } from '../domain/domain';
-import type { EstadoDeRecurso } from '../../devices/resources';
-import { descreverClasse, type GrausDeLiberdade } from '../../devices/tiers';
-import type { ResultadoDaSonda, SondaEmSessao } from '../../devices/probe';
-import type { LinhaDoRelatorio, Suporte } from '../modes/verification';
+import type { Dominio, Peca } from '../ordenha/dominio/dominio';
+import type { EstadoDeRecurso } from '../devices/resources';
+import { descreverClasse, type GrausDeLiberdade } from '../devices/tiers';
+import type { EstadoDaSessao, ResultadoDaSonda, SondaEmSessao } from '../devices/probe';
+import type { LinhaDoRelatorio, Suporte } from '../regimes/verification';
 
 function rotuloDoSuporte(suporte: Suporte): string {
   switch (suporte) {
@@ -49,7 +49,7 @@ function tabelaDeRegimes(linhas: readonly LinhaDoRelatorio[]): HTMLTableElement 
   return tabela;
 }
 
-function blocoDoDominio(dominio: Dominio, problemas: readonly string[]): HTMLElement {
+function blocoDoDominio(dominio: Dominio, ausentes: readonly Peca[]): HTMLElement {
   const bloco: HTMLElement = document.createElement('section');
 
   const titulo: HTMLHeadingElement = document.createElement('h2');
@@ -65,11 +65,12 @@ function blocoDoDominio(dominio: Dominio, problemas: readonly string[]): HTMLEle
   bloco.appendChild(tarefa);
 
   const inventario: HTMLParagraphElement = document.createElement('p');
+  const presentes: number = dominio.pecas.length - ausentes.length;
   inventario.textContent =
-    `${dominio.pecas.length} peças e ${dominio.sockets.length} encaixes declarados. ` +
-    (problemas.length === 0
-      ? 'Nenhuma inconsistência entre peças e encaixes.'
-      : `Inconsistências: ${problemas.join(' ')}`);
+    `${presentes} de ${dominio.pecas.length} peças prometidas estão na árvore da cena. ` +
+    (ausentes.length === 0
+      ? 'Nenhuma peça do domínio ficou de fora.'
+      : `Faltam: ${ausentes.map((peca) => peca.nome).join(', ')}.`);
   bloco.appendChild(inventario);
 
   return bloco;
@@ -78,11 +79,11 @@ function blocoDoDominio(dominio: Dominio, problemas: readonly string[]): HTMLEle
 export function montarRelatorio(
   raiz: HTMLElement,
   dominio: Dominio,
-  problemas: readonly string[],
+  ausentes: readonly Peca[],
   linhas: readonly LinhaDoRelatorio[],
 ): void {
   raiz.replaceChildren();
-  raiz.appendChild(blocoDoDominio(dominio, problemas));
+  raiz.appendChild(blocoDoDominio(dominio, ausentes));
 
   const tituloRegimes: HTMLHeadingElement = document.createElement('h2');
   tituloRegimes.textContent = 'Regimes: o que foi declarado e o que este aparelho responde';
@@ -94,10 +95,23 @@ function rotuloDoEstado(estado: EstadoDeRecurso): string {
   switch (estado) {
     case 'concedido':
       return 'concedido';
-    case 'negado':
-      return 'não concedido';
+    case 'nao-concedido':
+      return 'não concedido (ausente ou negado — a API não diz qual)';
     case 'indeterminado':
       return 'sem resposta';
+  }
+}
+
+function rotuloDaSessao(sessao: EstadoDaSessao): string {
+  switch (sessao) {
+    case 'aberta':
+      return 'Sessão imersiva: aberta e sondada.';
+    case 'ausente':
+      return 'Sessão imersiva: AUSENTE — o aparelho não declara modo imersivo.';
+    case 'negado':
+      return 'Sessão imersiva: NEGADA — o aparelho declara o modo, mas recusou abrir.';
+    case 'sem-api':
+      return 'Sessão imersiva: não perguntada — não há API XR.';
   }
 }
 
@@ -183,6 +197,8 @@ export function montarSonda(
     ),
   );
 
+  raiz.appendChild(paragrafo(rotuloDaSessao(resultado.sessao)));
+
   const sonda: SondaEmSessao | undefined = resultado.emSessao;
   if (sonda === undefined) {
     raiz.appendChild(
@@ -206,6 +222,16 @@ export function montarSonda(
 
   raiz.appendChild(subtitulo('Fontes de entrada declaradas'));
   raiz.appendChild(tabelaDeFontes(sonda));
+  raiz.appendChild(
+    paragrafo(
+      sonda.modoDeInteracao === 'nao-informado'
+        ? 'Modo de interação: não informado pelo navegador.'
+        : `Modo de interação: ${sonda.modoDeInteracao} ` +
+            (sonda.modoDeInteracao === 'screen-space'
+              ? '(na tela do aparelho, como num celular).'
+              : '(no espaço, com controles ou mãos, como num visor).'),
+    ),
+  );
 
   raiz.appendChild(subtitulo('Composição do fundo'));
   raiz.appendChild(paragrafo(`A sessão informou composição ${sonda.composicaoObservada}.`));
@@ -229,6 +255,7 @@ export function montarEstruturaDaCena(
   raiz: HTMLElement,
   arvore: readonly string[],
   frasesDaOrdem: readonly string[],
+  casosDeFronteira: readonly string[],
 ): void {
   raiz.replaceChildren();
   raiz.appendChild(subtitulo('Como a cena está montada'));
@@ -240,5 +267,10 @@ export function montarEstruturaDaCena(
   raiz.appendChild(subtitulo('A ordem das operações não é livre'));
   for (const frase of frasesDaOrdem) {
     raiz.appendChild(paragrafo(frase));
+  }
+
+  raiz.appendChild(subtitulo('Troca de pai conferida em números (casos de fronteira)'));
+  for (const caso of casosDeFronteira) {
+    raiz.appendChild(paragrafo(caso));
   }
 }

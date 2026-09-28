@@ -1,5 +1,5 @@
-import { REGIMES, type Regime, type RegimeId } from '../bench/modes/regime';
-import { levantarRelatorio, type LinhaDoRelatorio } from '../bench/modes/verification';
+import { REGIMES, type Regime, type RegimeId } from '../regimes/regime';
+import { levantarRelatorio, type LinhaDoRelatorio } from '../regimes/verification';
 import {RECURSOS_CONSULTADOS, estadoDoRecurso, type EstadoDeRecurso } from './resources';
 import {
   ContadorDeEstabilidade,
@@ -51,13 +51,31 @@ export interface SondaEmSessao {
   readonly recursos: readonly RecursoSondado[];
   readonly espacosConcedidos: readonly string[];
   readonly composicaoObservada: XREnvironmentBlendMode;
+  /**
+   * `screen-space`: a interação acontece na tela do aparelho (celular em AR);
+   * `world-space`: acontece no espaço, com controles ou mãos (visor). É a resposta
+   * do aparelho que separa celular de visor — os dois suportam VR e AR no Chrome.
+   */
+  readonly modoDeInteracao: XRInteractionMode | 'nao-informado';
   readonly fontesDeEntrada: readonly FonteDeEntradaSondada[];
   readonly graus: GrausDeLiberdade;
   readonly estabilidade: Estabilidade;
   readonly diagnostico: string;
 }
 
+/**
+ * O que aconteceu ao tentar abrir a sessão imersiva — é aqui que ausente e negado
+ * se separam de verdade:
+ * - `ausente`: o aparelho não declara modo imersivo (`isSessionSupported` = não);
+ * - `negado`: o aparelho declara o modo e mesmo assim recusou a sessão (pessoa
+ *   recusou a permissão, ou faltou gesto de quem usa);
+ * - `aberta`: a sessão abriu e foi sondada;
+ * - `sem-api`: nem a pergunta pôde ser feita.
+ */
+export type EstadoDaSessao = 'aberta' | 'ausente' | 'negado' | 'sem-api';
+
 export interface ResultadoDaSonda {
+  readonly sessao: EstadoDaSessao;
   readonly semSessao: SondaSemSessao;
   readonly emSessao: SondaEmSessao | undefined;
   readonly motivoSemSessao: string | undefined;
@@ -143,15 +161,31 @@ function observarQuadros(
   });
 }
 
+/** Só a recusa do `requestSession` — erro depois de a sessão abrir não é "negado". */
+export class SessaoRecusada extends Error {
+  constructor(
+    readonly modo: ModoSondavel,
+    readonly causa: unknown,
+  ) {
+    super(`O aparelho recusou a sessão ${modo}.`);
+    this.name = 'SessaoRecusada';
+  }
+}
+
 export async function sondarEmSessao(modo: ModoSondavel): Promise<SondaEmSessao> {
   const xr: XRSystem | undefined = navigator.xr;
   if (xr === undefined) {
     throw new Error('Não há API XR neste navegador.');
   }
 
-  const sessao: XRSession = await xr.requestSession(modo, {
-    optionalFeatures: RECURSOS_CONSULTADOS.map((recurso) => recurso.nome),
-  });
+  let sessao: XRSession;
+  try {
+    sessao = await xr.requestSession(modo, {
+      optionalFeatures: RECURSOS_CONSULTADOS.map((recurso) => recurso.nome),
+    });
+  } catch (erro: unknown) {
+    throw new SessaoRecusada(modo, erro);
+  }
 
   try {
     camadaMinima(sessao);
@@ -172,6 +206,7 @@ export async function sondarEmSessao(modo: ModoSondavel): Promise<SondaEmSessao>
       })),
       espacosConcedidos: espacos,
       composicaoObservada: sessao.environmentBlendMode,
+      modoDeInteracao: sessao.interactionMode ?? 'nao-informado',
       fontesDeEntrada: fontes,
       graus: grausDeLiberdade({
         concedidos: espacos,
@@ -199,6 +234,7 @@ export async function sondar(): Promise<ResultadoDaSonda> {
 
   if (modo === undefined) {
     return {
+      sessao: semSessao.temApiXr ? 'ausente' : 'sem-api',
       semSessao,
       emSessao: undefined,
       motivoSemSessao: semSessao.temApiXr
@@ -212,8 +248,27 @@ export async function sondar(): Promise<ResultadoDaSonda> {
     };
   }
 
-  const emSessao: SondaEmSessao = await sondarEmSessao(modo);
+  let emSessao: SondaEmSessao;
+  try {
+    emSessao = await sondarEmSessao(modo);
+  } catch (erro: unknown) {
+    if (!(erro instanceof SessaoRecusada)) {
+      throw erro;
+    }
+    const nome: string = erro.causa instanceof DOMException ? erro.causa.name : 'erro';
+    return {
+      sessao: 'negado',
+      semSessao,
+      emSessao: undefined,
+      motivoSemSessao:
+        `O aparelho declara ${modo} e recusou a sessão (${nome}). Isso é negado, não ausente: ` +
+        'o recurso existe, e a recusa veio da permissão ou da falta de gesto de quem usa. ' +
+        'Tocar de novo no botão e aceitar o pedido resolve; trocar de aparelho, não.',
+      classe: classificarAparelho(semSessao.modosSuportados, 'indeterminado', semSessao.temApiXr),
+    };
+  }
   return {
+    sessao: 'aberta',
     semSessao,
     emSessao,
     motivoSemSessao: undefined,
@@ -221,6 +276,7 @@ export async function sondar(): Promise<ResultadoDaSonda> {
       semSessao.modosSuportados,
       emSessao.graus,
       semSessao.temApiXr,
+      emSessao.modoDeInteracao,
     ),
   };
 }

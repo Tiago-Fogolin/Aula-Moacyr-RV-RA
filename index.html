@@ -62,6 +62,8 @@
         text-align: left;
         vertical-align: top;
       }
+      .painel-flutuante details { margin-top: 8px; border-top: 1px solid #ddd; padding-top: 6px; }
+      .painel-flutuante summary { cursor: pointer; font-weight: 600; }
       .diario p { margin: 4px 0; padding: 4px 6px; border-radius: 3px; font-size: 12px; }
       .diario-nota { background: #eef6ff; }
       .diario-alerta { background: #fff4d6; }
@@ -70,14 +72,21 @@
   </head>
   <body>
     <div id="app"></div>
-    <div id="info">Clique em <b>ENTER VR</b> ou <b>START AR</b>. No desktop, clique numa teta pra ordenhar.</div>
+    <div id="info">Clique em <b>ENTER VR</b> ou <b>START AR</b>. No desktop, clique numa teta pra ordenhar; arraste para girar a câmera.</div>
 
     <div id="painel-relatorio" class="painel-flutuante">
       <h1>Cena de ordenha — grafo e laço de renderização</h1>
-      <section id="relatorio"></section>
-      <section id="estrutura"></section>
-      <button id="reparentar-painel" type="button">Mover o painel para o balde</button>
+      <button id="deslocar-vaca" type="button">Deslocar a vaca (as tetas vão junto)</button>
+      <button id="pegar-balde" type="button">Pegar o balde (troca de pai → câmera)</button>
       <div id="diario" class="diario"></div>
+      <details>
+        <summary>Domínio, peças prometidas e regimes</summary>
+        <section id="relatorio"></section>
+      </details>
+      <details>
+        <summary>Árvore da cena e troca de pai conferida em números</summary>
+        <section id="estrutura"></section>
+      </details>
     </div>
 
     <div id="sonda" class="painel-flutuante">

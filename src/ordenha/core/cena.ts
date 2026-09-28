@@ -33,10 +33,10 @@ export function materialFosco(cor: number): THREE.MeshStandardMaterial {
 }
 
 /**
- * Geometria substituta por peça — ainda não há assets 3D importados (Seção 12 do
- * especificacao.md lista só fontes candidatas), então cada peça nasce como
- * primitiva, igual ao que o projeto do professor faz para "Bancada". A vaca é a
- * exceção: é composta por várias primitivas (ver construirVaca()), não uma só.
+ * Geometria crua por peça — o Módulo 03 proíbe ativo importado (modelagem e ativos
+ * externos são dos módulos seguintes), então cada peça nasce como primitiva em
+ * código, na escala em metros da Seção 4. A vaca é a exceção: é composta por várias
+ * primitivas (ver construirVaca()), não uma só.
  */
 export function formaDaPeca(id: PecaSimples): THREE.BufferGeometry {
   switch (id) {
@@ -125,20 +125,21 @@ function construirVaca(): THREE.Group {
         new THREE.CylinderGeometry(0.06, 0.08, 0.95, 10),
         pelagem,
         [x, 0.475, z],
+        'pata',
       );
       grupo.add(pata);
     }
   }
 
   // Cabeça, focinho e orelhas, na ponta dianteira do corpo.
-  const cabeca = malha(new THREE.BoxGeometry(0.4, 0.38, 0.42), pelagem, [1.1, 1.1, 0]);
+  const cabeca = malha(new THREE.BoxGeometry(0.4, 0.38, 0.42), pelagem, [1.1, 1.1, 0], 'cabeca');
   grupo.add(cabeca);
 
-  const focinho = malha(new THREE.BoxGeometry(0.14, 0.14, 0.34), rosa, [1.37, 0.98, 0]);
+  const focinho = malha(new THREE.BoxGeometry(0.14, 0.14, 0.34), rosa, [1.37, 0.98, 0], 'focinho');
   grupo.add(focinho);
 
   for (const z of [0.22, -0.22]) {
-    const orelha = malha(new THREE.BoxGeometry(0.14, 0.05, 0.06), pelagem, [1.0, 1.3, z]);
+    const orelha = malha(new THREE.BoxGeometry(0.14, 0.05, 0.06), pelagem, [1.0, 1.3, z], 'orelha');
     orelha.rotation.y = z > 0 ? -0.4 : 0.4;
     grupo.add(orelha);
   }
@@ -146,10 +147,10 @@ function construirVaca(): THREE.Group {
   // Rabo: haste + borla escura na ponta. O topo da haste precisa entrar na
   // metade traseira arredondada do corpo (centrada em x=-0.55, raio 0.35), não
   // só chegar perto — por isso o centro fica dentro do raio da cápsula.
-  const haste = malha(new THREE.CylinderGeometry(0.02, 0.03, 0.5, 8), pelagem, [-0.85, 0.85, 0]);
+  const haste = malha(new THREE.CylinderGeometry(0.02, 0.03, 0.5, 8), pelagem, [-0.85, 0.85, 0], 'rabo');
   haste.rotation.x = 0.25;
   grupo.add(haste);
-  const borla = malha(new THREE.SphereGeometry(0.06, 8, 8), escuro, [-0.85, 0.54, -0.08]);
+  const borla = malha(new THREE.SphereGeometry(0.06, 8, 8), escuro, [-0.85, 0.54, -0.08], 'rabo');
   grupo.add(borla);
 
   // Manchas: só cosmética, aproximadas sobre a superfície da cápsula do corpo.
@@ -159,7 +160,7 @@ function construirVaca(): THREE.Group {
     [0.0, 1.46, -0.14, 0.18],
   ];
   for (const [x, y, z, tamanho] of manchas) {
-    const mancha = malha(new THREE.SphereGeometry(tamanho, 8, 8), pelagemClara, [x, y, z]);
+    const mancha = malha(new THREE.SphereGeometry(tamanho, 8, 8), pelagemClara, [x, y, z], 'mancha');
     mancha.scale.set(1, 0.35, 1);
     grupo.add(mancha);
   }

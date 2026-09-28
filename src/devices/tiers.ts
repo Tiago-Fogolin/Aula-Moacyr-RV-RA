@@ -31,6 +31,7 @@ export function classificarAparelho(
   modosSuportados: readonly string[],
   graus: GrausDeLiberdade,
   temApiXr: boolean,
+  modoDeInteracao: XRInteractionMode | 'nao-informado' = 'nao-informado',
 ): ClasseDeAparelho {
   if (!temApiXr) {
     return 'sem-api';
@@ -40,6 +41,11 @@ export function classificarAparelho(
 
   if (!suportaVr && !suportaAr) {
     return 'somente-janela';
+  }
+  // O Chrome do Android declara VR e AR, como um visor. Quem separa os dois é a
+  // sessão: no celular a interação é na tela; no visor, no espaço.
+  if (modoDeInteracao === 'screen-space') {
+    return 'aparelho-de-mao-com-camera';
   }
   if (suportaAr && !suportaVr) {
     return 'aparelho-de-mao-com-camera';

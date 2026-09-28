@@ -10,21 +10,12 @@ const INTERVALO_DE_REDESENHO: number = 0.25;
 const CORPO_PX: number = 20;
 const ENTRELINHA_PX: number = 28;
 const MARGEM_PX: number = 18;
-/** Decisão de projeto: abaixo disso, o texto vira ilegível a olho. */
-const LIMIAR_DE_LEITURA_MINUTOS: number = 20;
-
-export interface Legibilidade {
-  readonly distanciaM: number;
-  readonly alturaAparenteMinutos: number;
-  readonly legivel: boolean;
-}
 
 export interface Painel {
   readonly no: THREE.Mesh;
   atualizar(titulo: string, linhas: readonly string[], delta: number): void;
   /** Gira o painel em torno do eixo vertical para ficar de frente pra câmera. */
   encarar(posicaoDaCamera: THREE.Vector3): void;
-  legibilidade(posicaoDaCamera: THREE.Vector3): Legibilidade;
 }
 
 function quebrar(ctx: CanvasRenderingContext2D, texto: string, larguraMax: number): string[] {
@@ -109,18 +100,6 @@ export function montarPainel(): Painel {
       const alvo = posicaoDaCamera.clone();
       alvo.y = mundo.y;
       malha.lookAt(alvo);
-    },
-    legibilidade(posicaoDaCamera): Legibilidade {
-      const mundo = new THREE.Vector3();
-      malha.getWorldPosition(mundo);
-      const distanciaM = mundo.distanceTo(posicaoDaCamera);
-      const alturaAparenteRad = 2 * Math.atan(ALTURA_M / 2 / Math.max(distanciaM, 0.001));
-      const alturaAparenteMinutos = ((alturaAparenteRad * 180) / Math.PI) * 60;
-      return {
-        distanciaM,
-        alturaAparenteMinutos,
-        legivel: alturaAparenteMinutos >= LIMIAR_DE_LEITURA_MINUTOS,
-      };
     },
   };
 }

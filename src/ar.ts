@@ -1,18 +1,23 @@
 import * as THREE from 'three';
+import { ESCALA_NA_MESA } from './regimes/regime';
 
 /**
  * Hit-test de AR: detecta superfícies reais e mostra um retículo onde você
- * aponta. Ao tocar a tela, planta um objeto naquele ponto do mundo real.
+ * aponta. Ao tocar a tela, o curral inteiro (vaca, tetas, balde) é posto naquele
+ * ponto da mesa, em escala 1:8 — um nó só muda, a árvore leva o resto.
  * Só funciona dentro de uma sessão AR com a feature 'hit-test'.
  */
 export function setupARHitTest(
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
+  curral: THREE.Object3D,
+  aoPosicionar: (posicao: THREE.Vector3) => void,
 ) {
   const reticle = new THREE.Mesh(
     new THREE.RingGeometry(0.07, 0.09, 32).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ color: 0x4f7cff }),
   );
+  reticle.name = 'reticulo';
   reticle.matrixAutoUpdate = false;
   reticle.visible = false;
   scene.add(reticle);
@@ -23,15 +28,11 @@ export function setupARHitTest(
   const controller = renderer.xr.getController(0);
   controller.addEventListener('select', () => {
     if (!reticle.visible) return;
-    const mesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, 0.2, 24),
-      new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.5 }),
-    );
-    mesh.position.setFromMatrixPosition(reticle.matrix);
-    mesh.position.y += 0.1;
-    scene.add(mesh);
+    curral.position.setFromMatrixPosition(reticle.matrix);
+    curral.scale.setScalar(ESCALA_NA_MESA);
+    curral.visible = true;
+    aoPosicionar(curral.position.clone());
   });
-  scene.add(controller);
 
   return {
     update(frame: XRFrame): void {
@@ -44,13 +45,20 @@ export function setupARHitTest(
       if (!requested) {
         requested = true;
         session.requestReferenceSpace('viewer').then((viewerSpace) => {
-          session.requestHitTestSource?.({ space: viewerSpace })?.then((source) => {
-            hitTestSource = source;
-          });
+          session.requestHitTestSource?.({ space: viewerSpace })?.then(
+            (source) => {
+              hitTestSource = source;
+            },
+            () => {
+              // hit-test não concedido: o curral fica na posição de reserva (main.ts).
+              hitTestSource = null;
+            },
+          );
         });
         session.addEventListener('end', () => {
           requested = false;
           hitTestSource = null;
+          reticle.visible = false;
         });
       }
 
