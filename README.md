@@ -2,8 +2,7 @@
 
 Jogo rítmico em que se ordenha uma vaca em escala real: acertar as tetas no tempo certo enche o balde de leite. O ambiente roda em três regimes: **na tela** (janela do navegador, sem equipamento), **no visor** (VR) e **pela câmera** (AR, com a vaca de 30 cm sobre uma mesa).
 
-A especificação completa (as 14 seções) está em [`docs/especificacao.md`](docs/especificacao.md). O material da entrega parcial do Módulo 03 está em [`docs/apresentacao/`](docs/apresentacao/).
-
+A especificação completa (as 14 seções) está em [`docs/especificacao.md`](docs/especificacao.md).
 Grupo: Luis Gustavo Marques, Rodrigo Paulino de Freitas, Tiago Fogolin Ragassi, Artur Ricz Badona e Leonardo Neves Bolfarini.
 
 ## Como pôr para rodar
